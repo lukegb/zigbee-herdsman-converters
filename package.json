@@ -33,7 +33,7 @@
         "test": "jest test --silent --maxWorkers=50%",
         "test-watch": "jest test --silent --watch --maxWorkers=25%",
         "clean": "rimraf --glob index* devices lib converters tsconfig.tsbuildinfo",
-        "build": "tsc",
+        "build": "tsc && cp src/lib/ota/*.pem lib/ota/",
         "build-watch": "tsc --watch",
         "prepack": "pnpm run clean && pnpm run build",
         "prepare": "husky"
