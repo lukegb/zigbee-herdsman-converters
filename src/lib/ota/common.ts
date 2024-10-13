@@ -47,6 +47,10 @@ type ImageBlockResponsePayload = {
     dataSize: number;
     data: Buffer;
 };
+type Checksum = {
+    opensslHashName: string;
+    hash: string;
+};
 
 const NS = 'zhc:ota:common';
 
@@ -752,6 +756,17 @@ export async function updateToLatest(
     }
 }
 
+function checksumData(meta: Ota.ImageMeta): Checksum | null {
+    if (meta.sha512) {
+        return {opensslHashName: 'sha512', hash: meta.sha512};
+    } else if (meta.sha256) {
+        return {opensslHashName: 'sha256', hash: meta.sha256};
+    } else if (meta.sha3_256) {
+        return {opensslHashName: 'sha3-256', hash: meta.sha3_256};
+    }
+    return null;
+}
+
 export async function getNewImage(
     current: Ota.ImageInfo,
     device: Zh.Device,
@@ -770,13 +785,12 @@ export async function getNewImage(
 
     const download = downloadImage ? await downloadImage(meta) : await getAxios().get(meta.url, {responseType: 'arraybuffer'});
 
-    const checksum = meta.sha512 || meta.sha256;
-
+    const checksum = checksumData(meta);
     if (checksum) {
-        const hash = crypto.createHash(meta.sha512 ? 'sha512' : 'sha256');
+        const hash = crypto.createHash(checksum.opensslHashName);
         hash.update(download.data);
 
-        assert(hash.digest('hex') === checksum, `File checksum validation failed`);
+        assert(hash.digest('hex') === checksum.hash, `File checksum validation failed`);
         logger.debug(`Update checksum validation succeeded for ${logId}`, NS);
     }
 
